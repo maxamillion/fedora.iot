@@ -1,0 +1,19 @@
+---
+# tasks file for container_lifecycle
+
+- name: Gather information about the current running container
+  containers.podman.podman_container_info:
+    name: "{{ service_name }}"
+  register: pre_install_container_info
+
+- name: Install Transction
+  block:
+    - name: run the install transaction
+      ansible.builtin.import_tasks: install.yml
+  rescue:
+    - name: rollback if necessary
+      ansible.builtin.import_tasks: install_rollback.yml
+  when:
+    - (not pre_install_container_info['containers']) or ((pre_install_container_info['containers'][0]['Name'] == service_name) and pre_install_container_info['containers'][0]['ImageName'] != container_image + ":" + container_tag)
+
+

@@ -1,0 +1,7 @@
+---
+- name: Install container
+  containers.podman.podman:
+    name: "{{ service_name }}"
+    image: "{{ container_image }}:{{ container_tag }}"
+    state: 
+
