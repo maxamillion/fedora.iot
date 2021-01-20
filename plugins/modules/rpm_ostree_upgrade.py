@@ -70,7 +70,7 @@ import os
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils._text import to_native
+from ansible.module_utils._text import to_native, to_text
 
 
 def rpm_ostree_transaction(module):
@@ -94,7 +94,10 @@ def rpm_ostree_transaction(module):
     if rc != 0:
         module.fail_json(rc=rc, msg=err)
     else:
-        module.exit_json(msg=out, changed=True)
+        if to_text("No upgrade available.") in to_text(out):
+            module.exit_json(msg=out, changed=False)
+        else
+            module.exit_json(msg=out, changed=True)
 
 
 def main():
