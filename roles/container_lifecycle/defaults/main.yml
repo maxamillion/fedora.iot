@@ -5,9 +5,13 @@ systemd_units_dir: "/etc/systemd/system/"
 
 service_name: ""
 
+container_state: "installed"
+
 container_image: ""
 
 container_tag: ""
+
+container_port_mapping: ""
 
 container_healthcheck: ""
 

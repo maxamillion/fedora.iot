@@ -8,12 +8,60 @@
 
 - name: Install Transction
   block:
-    - name: run the install transaction
-      ansible.builtin.import_tasks: install.yml
+    - name: pull down container image
+      containers.podman.podman_image:
+        name: "{{ container_image }}"
+        tag: "{{ container_tag }}"
+
+    - name: template the systemd service unit file
+      ansible.builtin.template:
+        src: "templates/systemd_unit.j2"
+        dest: "{{ systemd_units_dir }}/afiot-{{ service_name }}.service"
+
+    - name: template the systemd health check timer unit file
+      ansible.builtin.template:
+        src: "templates/systemd_timer.j2"
+        dest: "{{ systemd_units_dir }}/afiot-{{ service_name }}-healthcheck.timer"
+
+    - name: template the systemd health check service unit file
+      ansible.builtin.template:
+        src: "templates/systemd_timer.j2"
+        dest: "{{ systemd_units_dir }}/afiot-{{ service_name }}-healthcheck.service"
+
+    - name: deamon reload systemd and start our service
+      ansible.builtin.systemd:
+        name: "afiot-{{service_name}}"
+        state: started
+        enabled: yes
+        daemon_reload: yes
   rescue:
-    - name: rollback if necessary
-      ansible.builtin.import_tasks: install_rollback.yml
+    - name: override container_tag for rollback
+      set_fact:
+        container_tag: "{{ pre_install_container_info['containers'][0]['ImageName']|split(':')[-1] }}"
+
+    - name: template the systemd service unit file
+      ansible.builtin.template:
+        src: "templates/systemd_unit.j2"
+        dest: "{{ systemd_units_dir }}/afiot-{{ service_name }}.service"
+
+    - name: template the systemd health check timer unit file
+      ansible.builtin.template:
+        src: "templates/systemd_timer.j2"
+        dest: "{{ systemd_units_dir }}/afiot-{{ service_name }}-healthcheck.timer"
+
+    - name: template the systemd health check service unit file
+      ansible.builtin.template:
+        src: "templates/systemd_timer.j2"
+        dest: "{{ systemd_units_dir }}/afiot-{{ service_name }}-healthcheck.service"
+
+    - name: deamon reload systemd and start our service
+      ansible.builtin.systemd:
+        name: "afiot-{{service_name}}"
+        state: started
+        enabled: yes
+        daemon_reload: yes
   when:
+    - container_state in ["present", "installed"]
     - (not pre_install_container_info['containers']) or ((pre_install_container_info['containers'][0]['Name'] == service_name) and pre_install_container_info['containers'][0]['ImageName'] != container_image + ":" + container_tag)
 
 

@@ -1,0 +1,17 @@
+- name: Deploy an application to Fedora IoT
+  hosts: fedora-iot
+  vars:
+    systemd_units_dir: "/etc/systemd/system/"
+    service_name: "redis"
+    container_state: "installed"
+    container_image: "docker.io/redis"
+    container_tag: "6.0.9"
+    container_port_mapping: "6379:6379"
+    container_healthcheck_cmd: "/usr/local/bin/redis-cli info"
+    container_healthcheck_interval: "30s"
+    container_healthcheck_retries: 5
+  tasks:
+    - name: import fedora.iot.container_lifecycle role
+      ansible.builtin.import_role:
+        name: fedora.iot.container_lifecycle
+

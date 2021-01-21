@@ -103,7 +103,10 @@ def rpm_ostree_transaction(module):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            revision=dict(type='str', default='latest', aliases=["version"]),
+            os=dict(type='str', default=''),
+            cache_only=dict(type='bool', default=False),
+            allow_downgrade=dict(type='bool', default=False),
+            peer=dict(type='bool', default=False),
         ),
     )
 
