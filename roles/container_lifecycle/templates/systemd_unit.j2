@@ -14,7 +14,7 @@ ExecStart=/usr/bin/podman run --conmon-pidfile %t/afiot-container-{{service_name
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/afiot-container-{{service_name}}.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/afiot-container-{{service_name}}.ctr-id
 PIDFile=%t/afiot-container-{{service_name}}.pid
-KillMode=none
+KillMode=control-group
 Type=forking
 
 [Install]
