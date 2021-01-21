@@ -96,7 +96,7 @@ def rpm_ostree_transaction(module):
     else:
         if to_text("No upgrade available.") in to_text(out):
             module.exit_json(msg=out, changed=False)
-        else
+        else:
             module.exit_json(msg=out, changed=True)
 
 
