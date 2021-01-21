@@ -3,7 +3,7 @@
 
 - name: Gather information about the current running container
   containers.podman.podman_container_info:
-    name: "{{ service_name }}"
+    name: "afiot-{{ service_name }}"
   register: pre_install_container_info
 
 - name: Install Transction
@@ -62,6 +62,6 @@
         daemon_reload: yes
   when:
     - container_state in ["present", "installed"]
-    - (not pre_install_container_info['containers']) or ((pre_install_container_info['containers'][0]['Name'] == service_name) and pre_install_container_info['containers'][0]['ImageName'] != container_image + ":" + container_tag)
+    - (not pre_install_container_info['containers']) or ((pre_install_container_info['containers'][0]['Name'] == "afiot-" + service_name) and pre_install_container_info['containers'][0]['ImageName'] != container_image + ":" + container_tag)
 
 
