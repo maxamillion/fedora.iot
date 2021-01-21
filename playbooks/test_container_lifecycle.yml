@@ -5,7 +5,7 @@
     service_name: "redis"
     container_state: "installed"
     container_image: "docker.io/redis"
-    container_tag: "6.0.9"
+    container_tag: "6.0.8"
     container_port_mapping: "6379:6379"
     container_healthcheck_cmd: "/usr/local/bin/redis-cli info"
     container_healthcheck_interval: "30s"

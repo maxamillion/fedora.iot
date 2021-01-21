@@ -83,12 +83,12 @@
 
     - name: check for systemd service unit file
       ansible.builtin.stat:
-        path: "{{ systemd_units_dir }}"/afiot-{{ service_name }}.service"
+        path: "{{ systemd_units_dir }}/afiot-{{ service_name }}.service"
       register: ssuf_st
 
     - name: remove systemd service unit file
       ansible.builtin.file:
-        path: "{{ systemd_units_dir }}"/afiot-{{ service_name }}.service"
+        path: "{{ systemd_units_dir }}/afiot-{{ service_name }}.service"
         state: "absent"
       when: ssuf_st['stat']['exists']
 
