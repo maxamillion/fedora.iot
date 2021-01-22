@@ -14,6 +14,7 @@
       containers.podman.podman_image:
         name: "{{ container_image }}"
         tag: "{{ container_tag }}"
+      when: (not pre_install_container_info['containers']) or ((pre_install_container_info['containers'][0]['Name'] == "afiot-" + service_name) and pre_install_container_info['containers'][0]['ImageName'] != container_image + ":" + container_tag)
 
     - name: template the systemd service unit file
       ansible.builtin.template:
@@ -68,7 +69,6 @@
         daemon_reload: yes
   when:
     - container_state in ["present", "installed"]
-    - (not pre_install_container_info['containers']) or ((pre_install_container_info['containers'][0]['Name'] == "afiot-" + service_name) and pre_install_container_info['containers'][0]['ImageName'] != container_image + ":" + container_tag)
 
 
 - name: Uninstall Transction
