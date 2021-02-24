@@ -1,0 +1,29 @@
+name = "rhel-for-edge-demo"
+description = "End to end demo"
+version = "0.0.2"
+modules = []
+groups = []
+
+[[packages]]
+name = "rhc"
+version = "*"
+
+[[packages]]
+name = "rhc-worker-playbook"
+version = "*"
+
+[[packages]]
+name = "subscription-manager"
+version = "*"
+
+[[packages]]
+name = "subscription-manager-plugin-ostree"
+version = "*"
+
+[[packages]]
+name = "insights-client"
+version = "*"
+
+[customizations]
+hostname = "20210222-rhel-edge-demo-doodad"
+
