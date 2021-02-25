@@ -4,7 +4,7 @@
     workdir: /tmp/edge-workdir
     commit_tar: 41a0a265-1482-4805-8018-fd39c3825155-commit.tar
     ostree_container_image: quay.io/admiller/rhel-for-edge-hosting:latest
-    build_ostree: false
+    build_ostree: true
     blueprint_version: "0.0.4"
     systemd_units_dir: "/etc/systemd/system/"
     service_name: "ostree-updoots"
@@ -36,10 +36,6 @@
       ansible.builtin.copy:
         src: secure_files/rhel-8-beta.json
         dest: /etc/osbuild-composer/repositories/rhel-8-beta.json
-
-    - name: Build with composer-cli a RHEL for Edge Commit
-      ansible.builtin.debug:
-        msg: "FRIES ARE DONE"
 
     - name: Build with composer-cli a RHEL for Edge Commit
       block:
