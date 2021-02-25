@@ -2,22 +2,20 @@
   hosts: osbuilder
   vars:
     workdir: /tmp/edge-workdir
-    commit_tar: 41a0a265-1482-4805-8018-fd39c3825155-commit.tar
-    ostree_container_image: quay.io/admiller/rhel-for-edge-hosting:latest
     build_ostree: true
     systemd_units_dir: "/etc/systemd/system/"
     service_name: "ostree-updoots"
-    container_state: "installed"
-    container_image: "quay.io/admiller/rhel-for-edge-hosting"
-    container_tag: "latest"
-    container_port_mapping: "8000:80"
-    blueprint_version: "0.0.10"
+    blueprint_version: "0.0.11"
     blueprint_packages:
       - "rhc"
       - "rhc-worker-playbook"
       - "subscription-manager"
       - "subscription-manager-plugin-ostree"
       - "insights-client"
+    container_state: "installed"
+    container_image: "quay.io/admiller/rhel-for-edge-hosting"
+    container_tag: "{{ blueprint_version }}"
+    container_port_mapping: "8000:80"
   tasks:
     - name: Copy RHEL 8.4 Nightly yum repo file (VPN Required)
       ansible.builtin.copy:
@@ -58,7 +56,7 @@
         - name: push the blueprint
           ansible.builtin.shell: composer-cli blueprints push /tmp/blueprint.toml
           
-        - name: build that shit
+        - name: build that stuff
           ansible.builtin.shell: composer-cli compose start-ostree rhel-for-edge-demo rhel-edge-commit
           register: start_ostree
 
@@ -91,12 +89,12 @@
 
         - name: build the podman image
           containers.podman.podman_image:
-            name: "{{ ostree_container_image }}"
+            name: "{{ container_image }}"
+            tag: "{{ container_tag }}"
             path: "{{ workdir }}"
             build:
-              extra_args: "commit={{ ostree_image_uuid }}-commit.tar"
+              extra_args: "--build-arg commit={{ ostree_image_uuid }}-commit.tar"
               format: oci
-            push: yes
       when: build_ostree == true
 
     - name: import fedora.iot.container_lifecycle role
