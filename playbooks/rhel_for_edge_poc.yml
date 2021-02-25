@@ -4,7 +4,9 @@
     workdir: /tmp/edge-workdir
     commit_tar: 41a0a265-1482-4805-8018-fd39c3825155-commit.tar
     ostree_container_image: quay.io/admiller/rhel-for-edge-hosting
-    build_container: false
+    build_container: true
+    build_ostree: true
+    blueprint_version: "0.0.4"
   tasks:
     - name: Copy RHEL 8.4 Nightly yum repo file (VPN Required)
       ansible.builtin.copy:
@@ -30,45 +32,53 @@
         src: secure_files/rhel-8-beta.json
         dest: /etc/osbuild-composer/repositories/rhel-8-beta.json
 
-    - name: Enable cockpit service
-      ansible.builtin.service:
-        name: cockpit.socket
-        state: started
-        enabled: true
-      
-
     - name: Build with composer-cli a RHEL for Edge Commit
       ansible.builtin.debug:
         msg: "FRIES ARE DONE"
-    ############## BEGIN :: Stuff that needs doing but not going to demo today
-    # copy files/blueprint.toml to osbuilder host /tmp/blueprint.toml'
-    #
-    # run 'composer-cli blueprints push /tmp/blueprint.toml'
-    #
-    # run 'composer-cli compose start-ostree rhel-for-edge-demo rhel-edge-commit'
-    #
-    # periodically check in on this shit 'composer-cli compose status'
-    # FIXME - 
-    #
-    # build an image tar commit
-    #
-    ############## END :: Stuff that needs doing but not going to demo today
+        
+    - name: make temp workingdir
+      ansible.builtin.file:
+        path: "{{ workdir }}"
+        state: directory
+      when: build_container or build_ostree
+
+    - name: Build with composer-cli a RHEL for Edge Commit
+      block:
+        - name: copy blueprint template
+          ansible.builtin.template:
+            src: templates/blueprint.j2
+            dest: "/tmp/blueprint.toml"
+
+        - name: push the blueprint
+          ansible.builtin.shell: composer-cli blueprints push /tmp/blueprint.toml
+          
+        - name: push the blueprint
+          ansible.builtin.shell: composer-cli compose start-ostree rhel-for-edge-demo rhel-edge-commit
+          register: start_ostree
+
+        - name: store the image uuid
+          ansible.builtin.set_fact:
+            ostree_image_uuid: start_ostree['stdout_lines'][-1].split()[0]
+        
+        - name: push the blueprint
+          ansible.builtin.shell: composer-cli compose status
+          register: compose_start
+          until: 'FINISHED' in compose_start['stdout_lines'][-1]
+          delay: 20
+          retries: 100
+
+        - name: extract tarball payload from composer
+          ansible.builtin.shell:
+            cmd: "composer-cli compose image {{ ostree_image_uuid }}"
+            chdir: "{{ workdir }}/"
+
+
+      when: build_ostree == true
 
     # podman build the thing
     #
     - name: build podman oci hosting image
       block:
-        - name: make temp workingdir
-          ansible.builtin.file:
-            path: "{{ workdir }}"
-            state: directory
-
-        - name: copy commit tar to workdir
-          ansible.builtin.copy:
-            src: "/tmp/{{ commit_tar }}"
-            dest: "{{ workdir }}/{{ commit_tar }}"
-            remote_src: true
-
         - name: copy Containerfile to temp working dir
           ansible.builtin.copy:
             src: files/Containerfile
@@ -84,48 +94,56 @@
             name: "{{ ostree_container_image }}"
             path: "{{ workdir }}"
             build:
+              extra_args:
+                commit: "{{ ostree_image_uuid }}-commit.tar"
               format: oci
       when: build_container == true
 
     - name: run the image to host ostree
       containers.podman.podman_container:
-        name: myapplication
+        name: ostree-update-host
         image: "{{ ostree_container_image }}"
         state: started
+        rm: yes
         ports:
-          - "80:8000"
+          - "8000:80"
 
 
-#- name: Run the ostree update and deploy a container on the RHEL for Edge host
-#  hosts: rheledge
-#  vars:
-#    systemd_units_dir: "/etc/systemd/system/"
-#    service_name: "redis"
-#    container_state: "installed"
-#    container_image: "docker.io/redis"
-#    container_tag: "6.0.9"
-#    container_port_mapping: "6379:6379"
-#    container_healthcheck_cmd: "/usr/local/bin/redis-cli info"
-#    container_healthcheck_interval: "30s"
-#    container_healthcheck_retries: 5
-#    ostree_remote_name: rhel-for-edge-demo
-#    ostree_remote_url: 192.168.122.15:8000/
-#    ostree_content_url: FIXME
-#    ostree_gpg_verify: "false"
-#  tasks:
-#    - name: apply templated ostree remote config
-#      ansible.builtin.template:
-#        src: templates/ostree-remote.j2
-#        dest: /etc/ostree/remotes.d/rhel-for-edge.conf
-#
-#    - name: run rpmostree update
-#      fedora.iot.rpm_ostree_upgrade:
-#
-#    - name: reboot edge node
-#      ansible.builtin.reboot:
-#        reboot_timeout: 3600
-#
-#    - name: import fedora.iot.container_lifecycle role
-#      ansible.builtin.import_role:
-#        name: fedora.iot.container_lifecycle
-#
+- name: Run the ostree update and deploy a container on the RHEL for Edge host
+  hosts: rheledge
+  vars:
+    systemd_units_dir: "/etc/systemd/system/"
+    service_name: "redis"
+    container_state: "installed"
+    container_image: "docker.io/redis"
+    container_tag: "6.0.9"
+    container_port_mapping: "6379:6379"
+    container_healthcheck_cmd: "/usr/local/bin/redis-cli info"
+    container_healthcheck_interval: "30s"
+    container_healthcheck_retries: 5
+    ostree_remote_name: rhel-for-edge-demo
+    ostree_remote_url: 192.168.122.15:8000/
+    ostree_content_url: 192.168.122.15:8000/repo
+    ostree_gpg_verify: "false"
+  tasks:
+    - name: apply templated ostree remote config
+      ansible.builtin.template:
+        src: templates/ostree-remote.j2
+        dest: /etc/ostree/remotes.d/rhel-for-edge.conf
+
+    - name: switch config to stage for rhc 
+      ansible.builtin.copy:
+        src: files/rhc-config.toml
+        dest: /etc/rhc/config.toml
+
+    - name: run rpmostree update
+      fedora.iot.rpm_ostree_upgrade:
+
+    - name: reboot edge node
+      ansible.builtin.reboot:
+        reboot_timeout: 3600
+
+    - name: import fedora.iot.container_lifecycle role
+      ansible.builtin.import_role:
+        name: fedora.iot.container_lifecycle
+
