@@ -4,25 +4,12 @@ version = "{{ blueprint_version }}"
 modules = []
 groups = []
 
+{% for blueprint_package in blueprint_packages %}
 [[packages]]
-name = "rhc"
+name = "{{blueprint_package}}"
 version = "*"
 
-[[packages]]
-name = "rhc-worker-playbook"
-version = "*"
-
-[[packages]]
-name = "subscription-manager"
-version = "*"
-
-[[packages]]
-name = "subscription-manager-plugin-ostree"
-version = "*"
-
-[[packages]]
-name = "insights-client"
-version = "*"
+{% endfor %}
 
 [customizations]
 hostname = "20210222-rhel-edge-demo-doodad"
