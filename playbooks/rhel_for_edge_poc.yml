@@ -3,10 +3,15 @@
   vars:
     workdir: /tmp/edge-workdir
     commit_tar: 41a0a265-1482-4805-8018-fd39c3825155-commit.tar
-    ostree_container_image: quay.io/admiller/rhel-for-edge-hosting
-    build_container: true
-    build_ostree: true
+    ostree_container_image: quay.io/admiller/rhel-for-edge-hosting:latest
+    build_ostree: false
     blueprint_version: "0.0.4"
+    systemd_units_dir: "/etc/systemd/system/"
+    service_name: "ostree-updoots"
+    container_state: "installed"
+    container_image: "quay.io/admiller/rhel-for-edge-hosting"
+    container_tag: "latest"
+    container_port_mapping: "8000:80"
   tasks:
     - name: Copy RHEL 8.4 Nightly yum repo file (VPN Required)
       ansible.builtin.copy:
@@ -35,50 +40,43 @@
     - name: Build with composer-cli a RHEL for Edge Commit
       ansible.builtin.debug:
         msg: "FRIES ARE DONE"
-        
-    - name: make temp workingdir
-      ansible.builtin.file:
-        path: "{{ workdir }}"
-        state: directory
-      when: build_container or build_ostree
 
     - name: Build with composer-cli a RHEL for Edge Commit
       block:
+        - name: make temp workingdir
+          ansible.builtin.file:
+            path: "{{ workdir }}"
+            state: directory
+
         - name: copy blueprint template
           ansible.builtin.template:
-            src: templates/blueprint.j2
+            src: templates/blueprint.toml.j2
             dest: "/tmp/blueprint.toml"
 
         - name: push the blueprint
           ansible.builtin.shell: composer-cli blueprints push /tmp/blueprint.toml
           
-        - name: push the blueprint
+        - name: build that shit
           ansible.builtin.shell: composer-cli compose start-ostree rhel-for-edge-demo rhel-edge-commit
           register: start_ostree
 
         - name: store the image uuid
           ansible.builtin.set_fact:
-            ostree_image_uuid: start_ostree['stdout_lines'][-1].split()[0]
+            ostree_image_uuid: "{{ start_ostree['stdout_lines'][-1].split()[1] }}"
         
-        - name: push the blueprint
+        - name: wait for the ostree to build
           ansible.builtin.shell: composer-cli compose status
-          register: compose_start
-          until: 'FINISHED' in compose_start['stdout_lines'][-1]
+          register: compose_status
+          until: "('RUNNING' not in compose_status['stdout']) and ('WAITING' not in compose_status['stdout'])"
           delay: 20
           retries: 100
 
-        - name: extract tarball payload from composer
+        - name: extract tarball payload of the ostree from composer
           ansible.builtin.shell:
             cmd: "composer-cli compose image {{ ostree_image_uuid }}"
             chdir: "{{ workdir }}/"
 
 
-      when: build_ostree == true
-
-    # podman build the thing
-    #
-    - name: build podman oci hosting image
-      block:
         - name: copy Containerfile to temp working dir
           ansible.builtin.copy:
             src: files/Containerfile
@@ -97,16 +95,11 @@
               extra_args:
                 commit: "{{ ostree_image_uuid }}-commit.tar"
               format: oci
-      when: build_container == true
+      when: build_ostree == true
 
-    - name: run the image to host ostree
-      containers.podman.podman_container:
-        name: ostree-update-host
-        image: "{{ ostree_container_image }}"
-        state: started
-        rm: yes
-        ports:
-          - "8000:80"
+    - name: import fedora.iot.container_lifecycle role
+      ansible.builtin.import_role:
+        name: fedora.iot.container_lifecycle
 
 
 - name: Run the ostree update and deploy a container on the RHEL for Edge host
@@ -138,6 +131,7 @@
 
     - name: run rpmostree update
       fedora.iot.rpm_ostree_upgrade:
+        allow_downgrade: yes
 
     - name: reboot edge node
       ansible.builtin.reboot:
