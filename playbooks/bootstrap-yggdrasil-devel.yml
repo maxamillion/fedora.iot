@@ -25,12 +25,17 @@
           - 'git'
           - 'vim-enhanced'
           - '@go-toolset:rhel8'
+          - 'ansible'
 
-    - name: setup dev dir hierarchy
+    - name: setup needed directory structures
       file:
-        path: '{{ ansible_user_dir }}/src/dev/'
+        path: '{{ item }}'
         state: 'directory'
-
+      loop:
+        - '{{ ansible_user_dir }}/src/dev/'
+        - '/etc/yggdrasil/'
+        - '/etc/rhsm/ca/'
+        - '/etc/yggdrasil/workers/'
 
     - name: git clone dotfiles
       git:
@@ -46,6 +51,10 @@
       copy:
         src: 'files/yggdrasil_config.toml'
         dest: '/etc/yggdrasil/config.toml'
+
+    - name: copy rhc-worker-playbook config
+      copy:
+        src: 'files/rhc-worker-playbook_config.toml'
 
     - name: copy Red Hat certs
       copy:
