@@ -30,6 +30,9 @@
       yum:
           - '@go-toolset:rhel8'
 
+    - name: install gopls
+      shell: 'GO111MODULE=on go get golang.org/x/tools/gopls@latest'
+
     - name: setup needed directory structures
       file:
         path: '{{ item }}'
