@@ -1,0 +1,59 @@
+---
+
+#
+# Bootstrap CentOS Stream machine for yggdrasil development
+#
+# NOTE: This playbook assumes it's being run on a RHEL system that is properly
+#       subscriped via subscription manager such that we can send the Red Hat
+#       subman cert bundle from the controller.
+#
+# NOTE: subscprion-manager register is not covered here nor is the VPN setup
+- name: Bootstrap a CentOS Stream Machine for yggdrasil development
+  hosts: yggdev
+  tasks:
+    - name: install epel for NM openvpn
+      yum:
+        name: epel-release
+        state: present
+
+    - name: install packages
+      yum:
+        name:
+          - 'NetworkManager-openvpn'
+          - 'bind-utils'
+          - 'bash-completion'
+          - 'git'
+          - 'vim-enhanced'
+          - '@go-toolset:rhel8'
+
+    - name: setup dev dir hierarchy
+      file:
+        path: '{{ ansible_user_dir }}/src/dev/'
+        state: 'directory'
+
+
+    - name: git clone dotfiles
+      git:
+        repo: 'https://github.com/maxamillion/dotfiles.git'
+        dest: '{{ ansible_user_dir }}/dotfiles'
+
+    - name: git clone my fork of yggdrasil
+      git:
+        repo: 'https://github.com/maxamillion/yggdrasil.git'
+        dest: '{{ ansible_user_dir }}/src/dev/yggdrasil'
+
+    - name: copy yggdrasil config
+      copy:
+        src: 'files/yggdrasil_config.toml'
+        dest: '/etc/yggdrasil/config.toml'
+
+    - name: copy Red Hat certs
+      copy:
+        src: '{{ item }}'
+        dest: '{{ item }}'
+      loop:
+        - '/etc/rhsm/ca/redhat-entitlement-authority.pem'
+        - '/etc/rhsm/ca/redhat-uep.pem'
+
+
+
