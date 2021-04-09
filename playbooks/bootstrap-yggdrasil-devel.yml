@@ -24,8 +24,11 @@
           - 'bash-completion'
           - 'git'
           - 'vim-enhanced'
-          - '@go-toolset:rhel8'
           - 'ansible'
+
+    - name: install modules
+      yum:
+          - '@go-toolset:rhel8'
 
     - name: setup needed directory structures
       file:
