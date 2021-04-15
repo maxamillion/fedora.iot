@@ -25,9 +25,11 @@
           - 'git'
           - 'vim-enhanced'
           - 'ansible'
+          - 'make'
 
     - name: install modules
       yum:
+        name:
           - '@go-toolset:rhel8'
 
     - name: install gopls
@@ -61,6 +63,7 @@
     - name: copy rhc-worker-playbook config
       copy:
         src: 'files/rhc-worker-playbook_config.toml'
+        dest: '/usr/local/libexec/yggdrasil/rhc-worker-playbook.toml'
 
     - name: copy Red Hat certs
       copy:
