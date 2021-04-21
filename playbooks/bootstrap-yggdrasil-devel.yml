@@ -26,6 +26,8 @@
           - 'vim-enhanced'
           - 'ansible'
           - 'make'
+          - 'gcc-c++'
+          - 'python3-wheel'
 
     - name: install modules
       yum:
@@ -54,6 +56,28 @@
       git:
         repo: 'https://github.com/maxamillion/yggdrasil.git'
         dest: '{{ ansible_user_dir }}/src/dev/yggdrasil'
+
+    - name: git clone my fork of rhc-worker-playbook
+      git:
+        repo: 'https://github.com/maxamillion/rhc-worker-playbook.git'
+        dest: '{{ ansible_user_dir }}/src/dev/rhc-worker-playbook'
+
+    - name: make install rhc-worker-playbook
+      shell:
+        cmd: make install
+        chdir: '{{ ansible_user_dir }}/src/dev/rhc-worker-playbook'
+
+    - name: symlink rhc-worker-playbook /usr/local/libexecdir
+      file:
+        src: '/usr/local/libexec/rhc/'
+        dest: '/usr/local/libexec/yggdrasil/'
+        state: 'link'
+
+    - name: symlink rhc-worker-playbook /usr/local/etc/yggdrasil/
+      file:
+        src: '/usr/local/etc/rhc/'
+        dest: '/usr/local/etc/yggdrasil/'
+        state: 'link'
 
     - name: copy yggdrasil config
       copy:
