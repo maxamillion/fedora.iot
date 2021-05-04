@@ -6,8 +6,8 @@
     - name: install maxamillion.fedora_iot
       shell: ansible-galaxy install git+https://github.com/maxamillion/ansible-role-fedora-iot.git
       register: galaxy_install_out
-      changed_when: "installed successfully" in galaxy_install_out.stdout
-      failed_when: "ERROR!" in galaxy_install_out.stdout
+      changed_when: '"installed successfully" in galaxy_install_out.stdout'
+      failed_when: '"ERROR!" in galaxy_install_out.stdout'
 
 - name: Run the ostree update
   hosts: localhost
