@@ -1,21 +1,27 @@
 ---
 # This playbook is meant to be an all-in-one
-- name: Install the role
+- name: Run the ostree update in a single play without external deps
   hosts: localhost
+  vars:
+    ostree_remote_name: rhel-for-edge-demo
+    ostree_remote_url: 192.168.122.15:8000/
+    ostree_content_url: 192.168.122.15:8000/repo
+    ostree_gpg_verify: "false"
+    ostree_remote_template: |
+      [remote "{{ostree_remote_name}}"]
+      url={{ostree_remote_url}}
+      gpg-verify={{ostree_gpg_verify|default("true")}}
+      gpgkeypath={{ostree_gpg_keypath|default("/etc/pki/rpm-gpg/")}}
+      contenturl={{ostree_content_url}}
+     
   tasks:
-    - name: install maxamillion.fedora_iot
-      shell: ansible-galaxy install git+https://github.com/maxamillion/ansible-role-fedora-iot.git
-      register: galaxy_install_out
-      changed_when: '"installed successfully" in galaxy_install_out.stdout'
-      failed_when: '"ERROR!" in galaxy_install_out.stdout'
+    - name: apply templated ostree remote config
+      ansible.builtin.copy:
+        content: "{{ostree_remote_template}}"
+        dest: /etc/ostree/remotes.d/rhel-for-edge.conf
 
-- name: Run the ostree update
-  hosts: localhost
-  roles:
-    - roles: maxamillion.fedora_iot
-      vars:
-        ostree_remote_name: rhel-for-edge-demo
-        ostree_remote_url: 192.168.122.15:8000/
-        ostree_content_url: 192.168.122.15:8000/repo
-        ostree_gpg_verify: "false"
-        ostree_upgrade: true
+    - name: run rpmostree update
+      ansible.builtin.shell: rpm-ostree upgrade
+      register: rpmostree_upgrade_out
+      changed_when: '"No upgrade available" not in rpmostree_upgrade_out.stdout'
+      failed_when: 'rpmostree_upgrade_out.rc != 0'
