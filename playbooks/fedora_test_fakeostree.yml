@@ -1,0 +1,47 @@
+---
+- name: test ostree with a fake dir
+  hosts: fedora-ostree
+  vars:
+    create: false
+    destroy: false
+  tasks:
+    - name: install packages
+      yum:
+        name:
+          - ostree
+          - rpm-ostree
+        state: present
+
+
+    - name: create the fakeostree
+      when: create
+      block:
+        - name: create fakeostree dir
+          file:
+            path: /fakeostree
+            state: directory
+
+        - name: init fake ostree remote config
+          shell: ostree init --repo=/fakeostree/
+
+        - name: init fake ostree remote config
+          shell: |-
+            cat << EOF >> /fakeostree/config
+            [remote "fedora-iot"]
+            url=https://ostree.fedoraproject.org/iot/
+            gpg-verify=true
+            gpgkeypath=/etc/pki/rpm-gpg/
+            contenturl=mirrorlist=https://ostree.fedoraproject.org/iot/mirrorlist
+            EOF
+
+        - name: ostree pull
+          shell: ostree pull fedora-iot fedora/stable/x86_64/iot --repo=/fakeostree/
+
+    - name: destroy the fakeostree
+      when: destroy
+      block:
+        - name: destroy fakeostree dir
+          file:
+            path: /fakeostree
+            state: absent
+
