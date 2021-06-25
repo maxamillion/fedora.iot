@@ -1,0 +1,41 @@
+---
+
+#
+# Bootstrap RHEL 8.4 machine for RHC testing in CI environment
+#
+# NOTE: This playbook assumes it's being run against a RHEL 8.4 system that is
+#       properly subscriped via subscription manager 
+#
+# NOTE: subscprion-manager register is not covered here nor is the VPN setup
+# NOTE: subscription-manager repos --enable ansible-2-for-rhel-8-x86_64-rpms
+- name: Bootstrap a RHEL 8.4 Machine for RHC testing in CI environment
+  hosts: rhctest
+  tasks:
+    - name: install epel for NM openvpn
+      yum:
+        name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        state: present
+
+    - name: install packages
+      yum:
+        name:
+          - 'NetworkManager-openvpn'
+          - 'bind-utils'
+          - 'bash-completion'
+          - 'vim-enhanced'
+          - 'ansible'
+          - 'rhc'
+          - 'rhc-worker-playbook'
+
+    - name: copy yggdrasil config
+      copy:
+        src: 'files/yggdrasil_config.toml'
+        dest: '/etc/rhc/config.toml'
+
+    - name: copy rhc-worker-playbook config
+      copy:
+        src: 'files/rhc-worker-playbook_config.toml'
+        dest: '/usr/local/libexec/rhc/rhc-worker-playbook.toml'
+
+
+
